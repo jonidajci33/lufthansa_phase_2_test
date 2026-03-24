@@ -76,8 +76,8 @@ jobs:
             if [ "$SERVICE" = "shared-kernel" ] || [ "$SERVICE" = "test-fixtures" ]; then
               continue
             fi
-            COVERED=$(grep -oP 'type="INSTRUCTION".*?covered="\K\d+' "$report" | head -1)
-            MISSED=$(grep -oP 'type="INSTRUCTION".*?missed="\K\d+' "$report" | head -1)
+            COVERED=$(grep -oP 'type="INSTRUCTION".*?covered="\K\d+' "$report" | tail -1)
+            MISSED=$(grep -oP 'type="INSTRUCTION".*?missed="\K\d+' "$report" | tail -1)
             if [ -z "$COVERED" ] || [ -z "$MISSED" ]; then
               echo "::warning::Could not parse coverage for $SERVICE"
               continue
