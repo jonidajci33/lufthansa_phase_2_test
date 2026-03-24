@@ -112,7 +112,7 @@ jobs:
   sonar:
     needs: build-and-test
     runs-on: ubuntu-latest
-    if: (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && secrets.SONAR_TOKEN != '' && secrets.SONAR_HOST_URL != ''
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
 
     services:
       postgres:
