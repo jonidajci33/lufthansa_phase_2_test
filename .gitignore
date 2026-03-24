@@ -27,7 +27,7 @@ replay_pid*
 .project
 .settings/
 .factorypath
-out/
+/out/
 bin/
 
 # -- Environment / Secrets ----------------------------------------
