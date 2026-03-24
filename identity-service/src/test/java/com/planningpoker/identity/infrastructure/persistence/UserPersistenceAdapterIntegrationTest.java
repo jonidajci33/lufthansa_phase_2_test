@@ -32,7 +32,8 @@ class UserPersistenceAdapterIntegrationTest {
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:16-alpine")
             .withDatabaseName("identity_test_db")
             .withUsername("test")
-            .withPassword("test");
+            .withPassword("test")
+            .withInitScript("init-schema.sql");
 
     @DynamicPropertySource
     static void overrideProperties(DynamicPropertyRegistry registry) {
