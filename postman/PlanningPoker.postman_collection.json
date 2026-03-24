@@ -1,8 +1,8 @@
 {
   "info": {
-    "name": "Planning Poker Platform",
-    "_postman_id": "pp-collection-001",
-    "description": "API collection for the Planning Poker microservices platform.\n\nSetup:\n1. Import the 'Planning Poker Local' environment\n2. Obtain a token from Keycloak (use the 'Auth / Get Token (ROPC)' request)\n3. The token is auto-set in the collection variable {{access_token}}",
+    "name": "Planning Poker Platform — Workflow Edition",
+    "_postman_id": "pp-workflow-collection-002",
+    "description": "Workflow-oriented Postman collection for the Planning Poker microservices platform.\n\nOrganized by user journey — each folder is runnable as a Collection Runner sequence.\n\n## Setup\n1. Import this collection\n2. Run the '01 - Setup (Auth)' folder first to register/login and auto-set the token\n3. Run subsequent folders in order — variables chain automatically\n\n## Variables\n- `{{baseUrl}}` — Gateway URL (default: http://localhost:8080)\n- `{{token}}` — Bearer token (auto-set by Login/Register)\n- `{{refreshToken}}` — Refresh token (auto-set by Login/Register)\n- `{{roomId}}` — Room UUID (auto-set by Create Room)\n- `{{storyId}}` — Story UUID (auto-set by Create Story)\n- `{{shortCode}}` — Room short code (auto-set by Share Link)\n- `{{invitationToken}}` — Invitation token (auto-set by Invite)\n- `{{userId}}` — User keycloak ID (auto-set by Login)\n- `{{deckTypeId}}` — Deck type UUID (auto-set by List Deck Types)\n- `{{notificationId}}` — Notification UUID (auto-set by List Notifications)\n- `{{auditEntryId}}` — Audit entry ID (auto-set by List Audit Entries)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -10,49 +10,53 @@
     "bearer": [
       {
         "key": "token",
-        "value": "{{access_token}}",
+        "value": "{{token}}",
         "type": "string"
       }
     ]
   },
   "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8080",
-      "type": "string"
-    },
-    {
-      "key": "keycloak_url",
-      "value": "http://localhost:8180",
-      "type": "string"
-    },
-    {
-      "key": "realm",
-      "value": "planning-poker",
-      "type": "string"
-    },
-    {
-      "key": "access_token",
-      "value": "",
-      "type": "string"
-    }
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "roomId", "value": "", "type": "string" },
+    { "key": "storyId", "value": "", "type": "string" },
+    { "key": "shortCode", "value": "", "type": "string" },
+    { "key": "invitationToken", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "deckTypeId", "value": "", "type": "string" },
+    { "key": "notificationId", "value": "", "type": "string" },
+    { "key": "auditEntryId", "value": "", "type": "string" },
+    { "key": "participantUserId", "value": "", "type": "string" }
   ],
   "item": [
     {
-      "name": "Auth",
-      "description": "Authentication and token management via Keycloak",
+      "name": "01 - Setup (Auth)",
+      "description": "Authentication workflow. Run this folder first.\n\n**Sequence:** Register → Login → Get Auth Profile → Get User Profile → Refresh Token → Logout\n\nThe Login request auto-sets `{{token}}` and `{{refreshToken}}` for all subsequent requests.",
       "item": [
         {
-          "name": "Get Token (ROPC - dev only)",
+          "name": "Register",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 200) {",
+                  "if (pm.response.code === 201) {",
                   "    var json = pm.response.json();",
-                  "    pm.collectionVariables.set('access_token', json.access_token);",
-                  "    console.log('Token set successfully');",
+                  "    pm.collectionVariables.set('token', json.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "    if (json.user && json.user.id) {",
+                  "        pm.collectionVariables.set('userId', json.user.id);",
+                  "    }",
+                  "    pm.test('Registration successful', function () {",
+                  "        pm.expect(pm.response.code).to.eql(201);",
+                  "        pm.expect(json.accessToken).to.be.a('string');",
+                  "    });",
+                  "    console.log('Token and refreshToken set from registration');",
+                  "} else {",
+                  "    pm.test('Registration returned ' + pm.response.code, function () {",
+                  "        pm.expect.fail('Expected 201, got ' + pm.response.code);",
+                  "    });",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -63,116 +67,229 @@
             "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                { "key": "grant_type", "value": "password" },
-                { "key": "client_id", "value": "planning-poker-spa" },
-                { "key": "username", "value": "testuser" },
-                { "key": "password", "value": "testpass" },
-                { "key": "scope", "value": "openid profile email" }
-              ]
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"P@ssw0rd123\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"displayName\": \"Test User\"\n}"
             },
             "url": {
-              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
-              "host": ["{{keycloak_url}}"],
-              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"]
+              "raw": "{{baseUrl}}/api/v1/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "    if (json.user && json.user.id) {",
+                  "        pm.collectionVariables.set('userId', json.user.id);",
+                  "    }",
+                  "    pm.test('Login successful', function () {",
+                  "        pm.expect(pm.response.code).to.eql(200);",
+                  "        pm.expect(json.accessToken).to.be.a('string');",
+                  "    });",
+                  "    console.log('Token set from login: userId=' + (json.user ? json.user.id : 'N/A'));",
+                  "} else {",
+                  "    pm.test('Login returned ' + pm.response.code, function () {",
+                  "        pm.expect.fail('Expected 200, got ' + pm.response.code);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"P@ssw0rd123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Auth Profile (auth/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Auth profile returned', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.be.a('string');",
+                  "    pm.collectionVariables.set('userId', json.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get User Profile (users/me)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User profile returned', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "me"]
             }
           }
         },
         {
           "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('token', json.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', json.refreshToken);",
+                  "    pm.test('Token refreshed', function () {",
+                  "        pm.expect(json.accessToken).to.be.a('string');",
+                  "    });",
+                  "    console.log('Token refreshed successfully');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
-              "mode": "urlencoded",
-              "urlencoded": [
-                { "key": "grant_type", "value": "refresh_token" },
-                { "key": "client_id", "value": "planning-poker-spa" },
-                { "key": "refresh_token", "value": "{{refresh_token}}" }
-              ]
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": {
-              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
-              "host": ["{{keycloak_url}}"],
-              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"]
+              "raw": "{{baseUrl}}/api/v1/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "refresh"]
             }
           }
         },
         {
-          "name": "Get User Info",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/userinfo",
-              "host": ["{{keycloak_url}}"],
-              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "userinfo"]
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Logout successful', function () {",
+                  "    pm.expect(pm.response.code).to.eql(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
             }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Identity Service",
-      "description": "User profiles and account management",
-      "item": [
-        {
-          "name": "Get My Profile",
+          ],
           "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{base_url}}/api/v1/users/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users", "me"]
-            }
-          }
-        },
-        {
-          "name": "Update My Profile",
-          "request": {
-            "method": "PUT",
+            "auth": { "type": "noauth" },
+            "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"displayName\": \"Jane Developer\",\n  \"avatarUrl\": \"https://example.com/avatar.png\"\n}"
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/users/me",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users", "me"]
-            }
-          }
-        },
-        {
-          "name": "Get User by ID",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{base_url}}/api/v1/users/:userId",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "users", ":userId"],
-              "variable": [
-                { "key": "userId", "value": "" }
-              ]
+              "raw": "{{baseUrl}}/api/v1/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "auth", "logout"]
             }
           }
         }
       ]
     },
     {
-      "name": "Room Service",
-      "description": "Planning poker room lifecycle and membership",
+      "name": "02 - Room Management",
+      "description": "Room lifecycle workflow.\n\n**Sequence:** Create Room → List Rooms → Get Room → Update Room → Delete Room\n\nCreate Room auto-sets `{{roomId}}` for all downstream workflows.",
       "item": [
         {
           "name": "Create Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('roomId', json.id);",
+                  "    if (json.shortCode) {",
+                  "        pm.collectionVariables.set('shortCode', json.shortCode);",
+                  "    }",
+                  "    pm.test('Room created', function () {",
+                  "        pm.expect(pm.response.code).to.eql(201);",
+                  "        pm.expect(json.id).to.be.a('string');",
+                  "        pm.expect(json).to.have.property('name');",
+                  "    });",
+                  "    console.log('roomId set: ' + json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Ensure deckTypeId is set; if not, log a warning",
+                  "if (!pm.collectionVariables.get('deckTypeId')) {",
+                  "    console.warn('deckTypeId not set — run \"10 - Health / List Deck Types\" first to auto-populate');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -180,259 +297,93 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Sprint 42 Planning\",\n  \"description\": \"Estimate stories for sprint 42\",\n  \"votingSystem\": \"FIBONACCI\",\n  \"autoReveal\": true,\n  \"timerSeconds\": 120\n}"
+              "raw": "{\n  \"name\": \"Sprint 42 Planning\",\n  \"description\": \"Estimate stories for sprint 42\",\n  \"deckTypeId\": \"{{deckTypeId}}\",\n  \"maxParticipants\": 15\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/rooms",
-              "host": ["{{base_url}}"],
+              "raw": "{{baseUrl}}/api/v1/rooms",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "rooms"]
             }
           }
         },
         {
           "name": "List My Rooms",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Rooms listed', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "    // Auto-set roomId from first result if not already set",
+                  "    if (json.data.length > 0 && !pm.collectionVariables.get('roomId')) {",
+                  "        pm.collectionVariables.set('roomId', json.data[0].id);",
+                  "        console.log('roomId auto-set from list: ' + json.data[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/api/v1/rooms?page=0&size=20",
-              "host": ["{{base_url}}"],
+              "raw": "{{baseUrl}}/api/v1/rooms?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "rooms"],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" }
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" }
               ]
             }
           }
         },
         {
           "name": "Get Room by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Room retrieved', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.eql(pm.collectionVariables.get('roomId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/api/v1/rooms/:roomId",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "rooms", ":roomId"],
-              "variable": [
-                { "key": "roomId", "value": "" }
-              ]
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}"]
             }
           }
         },
         {
-          "name": "Join Room",
-          "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{base_url}}/api/v1/rooms/:roomId/join",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "rooms", ":roomId", "join"],
-              "variable": [
-                { "key": "roomId", "value": "" }
-              ]
+          "name": "Update Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Room updated', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('name');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
             }
-          }
-        },
-        {
-          "name": "Leave Room",
-          "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{base_url}}/api/v1/rooms/:roomId/leave",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "rooms", ":roomId", "leave"],
-              "variable": [
-                { "key": "roomId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Room Members",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{base_url}}/api/v1/rooms/:roomId/members",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "rooms", ":roomId", "members"],
-              "variable": [
-                { "key": "roomId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Delete Room",
-          "request": {
-            "method": "DELETE",
-            "url": {
-              "raw": "{{base_url}}/api/v1/rooms/:roomId",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "rooms", ":roomId"],
-              "variable": [
-                { "key": "roomId", "value": "" }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Estimation Service",
-      "description": "Voting sessions, votes, and estimation results",
-      "item": [
-        {
-          "name": "Start Session",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"roomId\": \"\",\n  \"topic\": \"US-1234: Implement user dashboard\",\n  \"description\": \"Create the main dashboard view with summary widgets\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions"]
-            }
-          }
-        },
-        {
-          "name": "Get Session",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions/:sessionId",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions", ":sessionId"],
-              "variable": [
-                { "key": "sessionId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Submit Vote",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"value\": \"5\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions/:sessionId/votes",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions", ":sessionId", "votes"],
-              "variable": [
-                { "key": "sessionId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Reveal Votes",
-          "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions/:sessionId/reveal",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions", ":sessionId", "reveal"],
-              "variable": [
-                { "key": "sessionId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Session Results",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions/:sessionId/results",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions", ":sessionId", "results"],
-              "variable": [
-                { "key": "sessionId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Reset Session (Re-vote)",
-          "request": {
-            "method": "POST",
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions/:sessionId/reset",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions", ":sessionId", "reset"],
-              "variable": [
-                { "key": "sessionId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "End Session",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"finalEstimate\": \"5\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/sessions/:sessionId/end",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "sessions", ":sessionId", "end"],
-              "variable": [
-                { "key": "sessionId", "value": "" }
-              ]
-            }
-          }
-        },
-        {
-          "name": "List Sessions by Room",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{base_url}}/api/v1/rooms/:roomId/sessions?page=0&size=20",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "rooms", ":roomId", "sessions"],
-              "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" }
-              ],
-              "variable": [
-                { "key": "roomId", "value": "" }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Notification Service",
-      "description": "Notification preferences and WebSocket connection info",
-      "item": [
-        {
-          "name": "Get My Notification Preferences",
-          "request": {
-            "method": "GET",
-            "url": {
-              "raw": "{{base_url}}/api/v1/notifications/preferences",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "notifications", "preferences"]
-            }
-          }
-        },
-        {
-          "name": "Update Notification Preferences",
+          ],
           "request": {
             "method": "PUT",
             "header": [
@@ -440,145 +391,1134 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"emailOnSessionStart\": true,\n  \"emailOnSessionEnd\": false,\n  \"pushEnabled\": true\n}"
+              "raw": "{\n  \"name\": \"Sprint 42 Planning (Updated)\",\n  \"description\": \"Updated description for sprint 42\",\n  \"maxParticipants\": 20\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/notifications/preferences",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "notifications", "preferences"]
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}"]
             }
           }
         },
         {
-          "name": "Get My Notifications",
+          "name": "Delete Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Room deleted', function () {",
+                  "    pm.expect(pm.response.code).to.eql(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Invitations",
+      "description": "Invitation workflow. Requires a room to exist.\n\n**Sequence:** Email Invite → Generate Share Link → Accept Invitation → Join by Short Code\n\nPre-requisite: Run '02 - Room Management / Create Room' first (but NOT Delete Room).",
+      "item": [
+        {
+          "name": "Email Invite",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.token) {",
+                  "        pm.collectionVariables.set('invitationToken', json.token);",
+                  "        console.log('invitationToken set: ' + json.token);",
+                  "    }",
+                  "    pm.test('Invitation created', function () {",
+                  "        pm.expect(pm.response.code).to.eql(201);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"colleague@example.com\",\n  \"type\": \"EMAIL\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/invite",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}", "invite"]
+            }
+          }
+        },
+        {
+          "name": "Generate Share Link",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    if (json.shortCode) {",
+                  "        pm.collectionVariables.set('shortCode', json.shortCode);",
+                  "        console.log('shortCode set: ' + json.shortCode);",
+                  "    }",
+                  "    pm.test('Share link generated', function () {",
+                  "        pm.expect(pm.response.code).to.eql(200);",
+                  "        pm.expect(json.shareLink).to.be.a('string');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/share-link",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}", "share-link"]
+            }
+          }
+        },
+        {
+          "name": "Accept Invitation",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Invitation accepted', function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invitations/{{invitationToken}}/accept",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "invitations", "{{invitationToken}}", "accept"]
+            }
+          }
+        },
+        {
+          "name": "Join by Short Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Joined by short code', function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "    if (pm.response.code === 200) {",
+                  "        var json = pm.response.json();",
+                  "        pm.expect(json.id).to.be.a('string');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/join/{{shortCode}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "join", "{{shortCode}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Story Management",
+      "description": "Story lifecycle workflow.\n\n**Sequence:** Create Story → List Stories by Room → Get Story → Update Story → Reorder Stories → Delete Story\n\nPre-requisite: `{{roomId}}` must be set (run Create Room first).",
+      "item": [
+        {
+          "name": "Create Story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('storyId', json.id);",
+                  "    pm.test('Story created', function () {",
+                  "        pm.expect(pm.response.code).to.eql(201);",
+                  "        pm.expect(json.id).to.be.a('string');",
+                  "        pm.expect(json).to.have.property('title');",
+                  "    });",
+                  "    console.log('storyId set: ' + json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"{{roomId}}\",\n  \"title\": \"US-1234: Implement user dashboard\",\n  \"description\": \"Create the main dashboard view with summary widgets\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories"]
+            }
+          }
+        },
+        {
+          "name": "List Stories by Room",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Stories listed', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "    if (json.data.length > 0 && !pm.collectionVariables.get('storyId')) {",
+                  "        pm.collectionVariables.set('storyId', json.data[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/api/v1/notifications?page=0&size=20&unreadOnly=true",
-              "host": ["{{base_url}}"],
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/stories?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}", "stories"],
+              "query": [
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Story by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Story retrieved', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.eql(pm.collectionVariables.get('storyId'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories/{{storyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories", "{{storyId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update Story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Story updated', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('title');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"US-1234: Implement user dashboard (revised)\",\n  \"description\": \"Updated description with acceptance criteria\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories/{{storyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories", "{{storyId}}"]
+            }
+          }
+        },
+        {
+          "name": "Reorder Stories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Stories reordered', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"storyIds\": [\"{{storyId}}\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/stories/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}", "stories", "reorder"]
+            }
+          }
+        },
+        {
+          "name": "Delete Story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Story deleted', function () {",
+                  "    pm.expect(pm.response.code).to.eql(204);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories/{{storyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories", "{{storyId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Voting",
+      "description": "Full voting workflow on a story.\n\n**Sequence:** Start Voting → Cast Vote → Finish Voting → View Results\n\nPre-requisite: `{{storyId}}` must be set and story must be in PENDING status.",
+      "item": [
+        {
+          "name": "Start Voting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Voting started', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories/{{storyId}}/voting/start",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories", "{{storyId}}", "voting", "start"]
+            }
+          }
+        },
+        {
+          "name": "Cast Vote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Vote submitted', function () {",
+                  "    pm.expect(pm.response.code).to.eql(201);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('value');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"5\",\n  \"numericValue\": 5.0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories/{{storyId}}/votes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories", "{{storyId}}", "votes"]
+            }
+          }
+        },
+        {
+          "name": "Finish Voting",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Voting finished', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('averageValue');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories/{{storyId}}/voting/finish",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories", "{{storyId}}", "voting", "finish"]
+            }
+          }
+        },
+        {
+          "name": "View Votes (after finish)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Votes retrieved', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories/{{storyId}}/votes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories", "{{storyId}}", "votes"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Participants",
+      "description": "Room participation workflow.\n\n**Sequence:** Join Room → List Participants → Remove Participant\n\nPre-requisite: `{{roomId}}` must be set.",
+      "item": [
+        {
+          "name": "Join Room by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Joined room', function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "    if (pm.response.code === 200) {",
+                  "        var json = pm.response.json();",
+                  "        if (json.userId) {",
+                  "            pm.collectionVariables.set('participantUserId', json.userId);",
+                  "        }",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/join",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}", "join"]
+            }
+          }
+        },
+        {
+          "name": "List Participants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Participants listed', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    // Auto-set participantUserId from last participant if available",
+                  "    if (json.length > 1) {",
+                  "        pm.collectionVariables.set('participantUserId', json[json.length - 1].userId);",
+                  "        console.log('participantUserId set: ' + json[json.length - 1].userId);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/participants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}", "participants"]
+            }
+          }
+        },
+        {
+          "name": "Remove Participant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Participant removed', function () {",
+                  "    pm.expect([204, 403, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rooms/{{roomId}}/participants/{{participantUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "rooms", "{{roomId}}", "participants", "{{participantUserId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Notifications",
+      "description": "Notification workflow.\n\n**Sequence:** Get Unread Count → List Notifications → Mark as Read → Mark All as Read\n\nNo pre-requisites beyond authentication.",
+      "item": [
+        {
+          "name": "Get Unread Count",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Unread count returned', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('count');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/unread-count",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notifications", "unread-count"]
+            }
+          }
+        },
+        {
+          "name": "List Notifications",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Notifications listed', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "    // Auto-set notificationId from first result",
+                  "    if (json.data.length > 0) {",
+                  "        pm.collectionVariables.set('notificationId', json.data[0].id);",
+                  "        console.log('notificationId set: ' + json.data[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "notifications"],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" },
-                { "key": "unreadOnly", "value": "true" }
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" }
               ]
             }
           }
         },
         {
           "name": "Mark Notification as Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Notification marked as read', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "PUT",
             "url": {
-              "raw": "{{base_url}}/api/v1/notifications/:notificationId/read",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "notifications", ":notificationId", "read"],
-              "variable": [
-                { "key": "notificationId", "value": "" }
-              ]
+              "raw": "{{baseUrl}}/api/v1/notifications/{{notificationId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notifications", "{{notificationId}}", "read"]
+            }
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('All notifications marked as read', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "notifications", "read-all"]
             }
           }
         }
       ]
     },
     {
-      "name": "Audit Service",
-      "description": "Audit trail and activity logs (ADMIN only)",
+      "name": "08 - Admin",
+      "description": "Admin-only operations (requires ADMIN role).\n\n**Sequence:** List Users → Get User → Update User → Deactivate User → List All Stories → Search Audit → Get Audit Entry → Get Entity History\n\nPre-requisite: Authenticated user must have ADMIN role in Keycloak.",
       "item": [
         {
-          "name": "Search Audit Events",
+          "name": "List Users (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Users listed', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "    // Auto-set userId from second user if available (avoid self)",
+                  "    if (json.data.length > 1) {",
+                  "        pm.collectionVariables.set('targetUserId', json.data[1].id);",
+                  "        console.log('targetUserId set: ' + json.data[1].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/api/v1/audit/events?page=0&size=20&from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "audit", "events"],
+              "raw": "{{baseUrl}}/api/v1/users?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users"],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" },
-                { "key": "from", "value": "2026-01-01T00:00:00Z" },
-                { "key": "to", "value": "2026-12-31T23:59:59Z" }
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" }
               ]
             }
           }
         },
         {
-          "name": "Get Audit Event by ID",
+          "name": "Get User by ID (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User retrieved', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.id).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/api/v1/audit/events/:eventId",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "audit", "events", ":eventId"],
-              "variable": [
-                { "key": "eventId", "value": "" }
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Update User (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User updated', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('displayName');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Admin Updated Name\",\n  \"avatarUrl\": \"https://example.com/admin-avatar.png\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Deactivate User (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('User deactivated', function () {",
+                  "    // 204 = success, 404 = user not found (acceptable in test scenarios)",
+                  "    pm.expect([204, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "List All Stories (admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('All stories listed', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/stories?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "stories"],
+              "query": [
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" }
               ]
             }
           }
         },
         {
-          "name": "Get Audit Events by Room",
+          "name": "Search Audit Entries",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Audit entries listed', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.data).to.be.an('array');",
+                  "    // Auto-set auditEntryId from first result",
+                  "    if (json.data.length > 0) {",
+                  "        pm.collectionVariables.set('auditEntryId', json.data[0].id);",
+                  "        console.log('auditEntryId set: ' + json.data[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/api/v1/audit/rooms/:roomId/events?page=0&size=20",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "audit", "rooms", ":roomId", "events"],
+              "raw": "{{baseUrl}}/api/v1/audit?offset=0&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "audit"],
               "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" }
-              ],
-              "variable": [
-                { "key": "roomId", "value": "" }
+                { "key": "offset", "value": "0" },
+                { "key": "limit", "value": "20" },
+                { "key": "entityType", "value": "", "disabled": true },
+                { "key": "operation", "value": "", "disabled": true },
+                { "key": "userId", "value": "", "disabled": true },
+                { "key": "from", "value": "2026-01-01T00:00:00Z", "disabled": true },
+                { "key": "to", "value": "2026-12-31T23:59:59Z", "disabled": true }
               ]
             }
           }
         },
         {
-          "name": "Get Audit Events by User",
+          "name": "Get Audit Entry by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Audit entry retrieved', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/api/v1/audit/users/:userId/events?page=0&size=20",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "audit", "users", ":userId", "events"],
-              "query": [
-                { "key": "page", "value": "0" },
-                { "key": "size", "value": "20" }
-              ],
-              "variable": [
-                { "key": "userId", "value": "" }
-              ]
+              "raw": "{{baseUrl}}/api/v1/audit/{{auditEntryId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "audit", "{{auditEntryId}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Entity History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Entity history retrieved', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/audit/entity/ROOM/{{roomId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "audit", "entity", "ROOM", "{{roomId}}"]
             }
           }
         }
       ]
     },
     {
-      "name": "Health",
-      "description": "Actuator health and info endpoints for all services",
+      "name": "09 - Internal (Service-to-Service)",
+      "description": "Internal endpoints for service-to-service communication.\n\nThese endpoints have NO authentication (permitAll on /internal/**).\nUsed by services like estimation-service and notification-service to look up users and rooms.",
       "item": [
         {
-          "name": "Gateway Health",
+          "name": "Internal: Get User by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Internal user retrieved', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/actuator/health",
-              "host": ["{{base_url}}"],
+              "raw": "{{baseUrl}}/internal/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["internal", "users", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Internal: Get Room by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Internal room retrieved', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/internal/rooms/{{roomId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["internal", "rooms", "{{roomId}}"]
+            }
+          }
+        },
+        {
+          "name": "Internal: List Room Participants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Internal participants listed', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "    if (pm.response.code === 200) {",
+                  "        var json = pm.response.json();",
+                  "        pm.expect(json).to.be.an('array');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/internal/rooms/{{roomId}}/participants",
+              "host": ["{{baseUrl}}"],
+              "path": ["internal", "rooms", "{{roomId}}", "participants"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Health & Reference Data",
+      "description": "Health checks and reference data endpoints.\n\nNo authentication required for actuator. Deck types require auth.\n\n**Tip:** Run 'List Deck Types' first to auto-populate `{{deckTypeId}}` for Create Room.",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Gateway is healthy', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('status');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
               "path": ["actuator", "health"]
             }
           }
         },
         {
           "name": "Gateway Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Gateway info returned', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "auth": { "type": "noauth" },
             "method": "GET",
             "url": {
-              "raw": "{{base_url}}/actuator/info",
-              "host": ["{{base_url}}"],
+              "raw": "{{baseUrl}}/actuator/info",
+              "host": ["{{baseUrl}}"],
               "path": ["actuator", "info"]
+            }
+          }
+        },
+        {
+          "name": "List Deck Types",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Deck types listed', function () {",
+                  "    pm.expect(pm.response.code).to.eql(200);",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    // Auto-set deckTypeId from first result (typically Fibonacci)",
+                  "    if (json.length > 0) {",
+                  "        pm.collectionVariables.set('deckTypeId', json[0].id);",
+                  "        console.log('deckTypeId set: ' + json[0].id + ' (' + json[0].name + ')');",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deck-types",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "deck-types"]
+            }
+          }
+        },
+        {
+          "name": "Create Custom Deck Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.test('Custom deck type created', function () {",
+                  "        pm.expect(json.id).to.be.a('string');",
+                  "        pm.expect(json).to.have.property('name');",
+                  "    });",
+                  "    // Optionally override deckTypeId with this custom deck",
+                  "    // pm.collectionVariables.set('deckTypeId', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"T-Shirt Sizes\",\n  \"values\": [\n    { \"label\": \"XS\", \"numericValue\": 1 },\n    { \"label\": \"S\", \"numericValue\": 2 },\n    { \"label\": \"M\", \"numericValue\": 5 },\n    { \"label\": \"L\", \"numericValue\": 8 },\n    { \"label\": \"XL\", \"numericValue\": 13 }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/deck-types",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "deck-types"]
             }
           }
         }
