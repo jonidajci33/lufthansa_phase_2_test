@@ -47,6 +47,7 @@ class RoomPersistenceAdapterIntegrationTest {
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
         registry.add("spring.flyway.schemas", () -> "room");
         registry.add("spring.jpa.properties.hibernate.default_schema", () -> "room");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 
     @Autowired

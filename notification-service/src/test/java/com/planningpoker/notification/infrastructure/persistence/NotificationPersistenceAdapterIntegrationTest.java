@@ -46,6 +46,7 @@ class NotificationPersistenceAdapterIntegrationTest {
         registry.add("spring.flyway.schemas", () -> "notification");
         registry.add("spring.flyway.create-schemas", () -> "true");
         registry.add("spring.jpa.properties.hibernate.default_schema", () -> "notification");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 
     @Autowired

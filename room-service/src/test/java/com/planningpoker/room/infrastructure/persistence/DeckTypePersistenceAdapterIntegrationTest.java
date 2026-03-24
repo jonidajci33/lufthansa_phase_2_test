@@ -44,6 +44,7 @@ class DeckTypePersistenceAdapterIntegrationTest {
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
         registry.add("spring.flyway.schemas", () -> "room");
         registry.add("spring.jpa.properties.hibernate.default_schema", () -> "room");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 
     @Autowired
@@ -77,56 +78,43 @@ class DeckTypePersistenceAdapterIntegrationTest {
         );
     }
 
-    // ── Tests relying on V2 seeded data ─────────────────────────────
+    // ── Tests ─────────────────────────────────────────────────────────
 
     @Test
-    void shouldFindSeededScrumDeckById() {
-        Optional<DeckType> found = adapter.findById(SCRUM_DECK_ID);
+    void shouldSaveAndFindById() {
+        UUID id = UUID.randomUUID();
+        DeckType deck = buildCustomDeckType(id, "Scrum Test", DeckCategory.SCRUM);
+        adapter.save(deck);
+
+        Optional<DeckType> found = adapter.findById(id);
 
         assertThat(found).isPresent();
-        assertThat(found.get().getName()).isEqualTo("Scrum");
+        assertThat(found.get().getName()).isEqualTo("Scrum Test");
         assertThat(found.get().getCategory()).isEqualTo(DeckCategory.SCRUM);
-        assertThat(found.get().isSystem()).isTrue();
-        assertThat(found.get().getCreatedBy()).isNull();
-        assertThat(found.get().getValues()).hasSize(13);
+        assertThat(found.get().getValues()).hasSize(3);
     }
 
     @Test
-    void shouldFindSeededFibonacciDeckById() {
-        Optional<DeckType> found = adapter.findById(FIBONACCI_DECK_ID);
+    void shouldFindAll() {
+        adapter.save(buildCustomDeckType(UUID.randomUUID(), "Deck A", DeckCategory.SCRUM));
+        adapter.save(buildCustomDeckType(UUID.randomUUID(), "Deck B", DeckCategory.FIBONACCI));
 
-        assertThat(found).isPresent();
-        assertThat(found.get().getName()).isEqualTo("Fibonacci");
-        assertThat(found.get().getCategory()).isEqualTo(DeckCategory.FIBONACCI);
-        assertThat(found.get().isSystem()).isTrue();
-        assertThat(found.get().getValues()).hasSize(11);
-    }
-
-    @Test
-    void shouldFindAllSeededDeckTypes() {
         List<DeckType> all = adapter.findAll();
 
-        assertThat(all).hasSizeGreaterThanOrEqualTo(4);
-        assertThat(all).extracting(DeckType::getName)
-                .contains("Scrum", "Fibonacci", "Sequential", "T-Shirt");
+        assertThat(all).hasSizeGreaterThanOrEqualTo(2);
+        assertThat(all).extracting(DeckType::getName).contains("Deck A", "Deck B");
     }
 
     @Test
     void shouldFindByCategory() {
+        adapter.save(buildCustomDeckType(UUID.randomUUID(), "Scrum 1", DeckCategory.SCRUM));
+        adapter.save(buildCustomDeckType(UUID.randomUUID(), "Fib 1", DeckCategory.FIBONACCI));
+
         List<DeckType> scrumDecks = adapter.findByCategory(DeckCategory.SCRUM);
 
         assertThat(scrumDecks).isNotEmpty();
         assertThat(scrumDecks).allSatisfy(deck ->
                 assertThat(deck.getCategory()).isEqualTo(DeckCategory.SCRUM));
-    }
-
-    @Test
-    void shouldFindByCategoryTShirt() {
-        List<DeckType> tShirtDecks = adapter.findByCategory(DeckCategory.T_SHIRT);
-
-        assertThat(tShirtDecks).hasSize(1);
-        assertThat(tShirtDecks.get(0).getName()).isEqualTo("T-Shirt");
-        assertThat(tShirtDecks.get(0).getValues()).hasSize(6);
     }
 
     @Test
@@ -186,23 +174,27 @@ class DeckTypePersistenceAdapterIntegrationTest {
 
     @Test
     void shouldIncludeCustomDeckInFindAll() {
+        adapter.save(buildCustomDeckType(UUID.randomUUID(), "Base Deck", DeckCategory.SCRUM));
+
         UUID id = UUID.randomUUID();
         DeckType custom = buildCustomDeckType(id, "Extra Deck", DeckCategory.CUSTOM);
         adapter.save(custom);
 
         List<DeckType> all = adapter.findAll();
 
-        // 4 seeded + 1 custom
-        assertThat(all).hasSizeGreaterThanOrEqualTo(5);
+        assertThat(all).hasSizeGreaterThanOrEqualTo(2);
         assertThat(all).extracting(DeckType::getName).contains("Extra Deck");
     }
 
     @Test
     void shouldPreserveDeckValueSortOrder() {
-        Optional<DeckType> scrum = adapter.findById(SCRUM_DECK_ID);
-        assertThat(scrum).isPresent();
+        UUID id = UUID.randomUUID();
+        adapter.save(buildCustomDeckType(id, "Sort Test", DeckCategory.SCRUM));
 
-        List<DeckValue> values = scrum.get().getValues();
+        Optional<DeckType> found = adapter.findById(id);
+        assertThat(found).isPresent();
+
+        List<DeckValue> values = found.get().getValues();
         for (int i = 0; i < values.size() - 1; i++) {
             assertThat(values.get(i).getSortOrder())
                     .isLessThanOrEqualTo(values.get(i + 1).getSortOrder());

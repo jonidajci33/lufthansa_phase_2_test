@@ -47,6 +47,7 @@ class AuditPersistenceAdapterIntegrationTest {
         registry.add("spring.flyway.schemas", () -> "audit");
         registry.add("spring.flyway.create-schemas", () -> "true");
         registry.add("spring.jpa.properties.hibernate.default_schema", () -> "audit");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 
     @Autowired

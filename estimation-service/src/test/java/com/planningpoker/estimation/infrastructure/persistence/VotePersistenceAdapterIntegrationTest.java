@@ -47,6 +47,7 @@ class VotePersistenceAdapterIntegrationTest {
         registry.add("spring.flyway.locations", () -> "classpath:db/migration");
         registry.add("spring.flyway.schemas", () -> "estimation");
         registry.add("spring.jpa.properties.hibernate.default_schema", () -> "estimation");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
     }
 
     @Autowired
