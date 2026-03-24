@@ -1,0 +1,84 @@
+# Prometheus scrape configuration for Planning Poker Platform
+# All 6 Spring Boot services expose metrics on their management port (8081)
+# via /actuator/prometheus
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+scrape_configs:
+  # ── Gateway ──────────────────────────────────────────────
+  - job_name: gateway
+    metrics_path: /actuator/prometheus
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['pp-gateway:8081']
+        labels:
+          application: gateway
+          service_group: planning-poker
+
+  # ── Identity Service ─────────────────────────────────────
+  - job_name: identity-service
+    metrics_path: /actuator/prometheus
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['pp-identity-service:8081']
+        labels:
+          application: identity-service
+          service_group: planning-poker
+
+  # ── Room Service ─────────────────────────────────────────
+  - job_name: room-service
+    metrics_path: /actuator/prometheus
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['pp-room-service:8081']
+        labels:
+          application: room-service
+          service_group: planning-poker
+
+  # ── Estimation Service ───────────────────────────────────
+  - job_name: estimation-service
+    metrics_path: /actuator/prometheus
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['pp-estimation-service:8081']
+        labels:
+          application: estimation-service
+          service_group: planning-poker
+
+  # ── Notification Service ─────────────────────────────────
+  - job_name: notification-service
+    metrics_path: /actuator/prometheus
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['pp-notification-service:8081']
+        labels:
+          application: notification-service
+          service_group: planning-poker
+
+  # ── Audit Service ────────────────────────────────────────
+  - job_name: audit-service
+    metrics_path: /actuator/prometheus
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['pp-audit-service:8081']
+        labels:
+          application: audit-service
+          service_group: planning-poker
+
+  # ── Keycloak ─────────────────────────────────────────────
+  - job_name: keycloak
+    metrics_path: /metrics
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['pp-keycloak:8080']
+        labels:
+          application: keycloak
+          service_group: planning-poker
+
+  # ── Prometheus self-monitoring ───────────────────────────
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

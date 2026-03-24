@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.planningpoker.audit.ArchitectureTest
+-------------------------------------------------------------------------------
+Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.200 s -- in com.planningpoker.audit.ArchitectureTest

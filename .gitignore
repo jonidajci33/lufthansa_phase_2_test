@@ -1,0 +1,54 @@
+# ================================================================
+# .gitignore — Planning Poker (Java / Gradle / Docker)
+# ================================================================
+
+# -- Gradle -------------------------------------------------------
+.gradle/
+**/build/
+!src/**/build/
+gradle-app.setting
+
+# -- Java ---------------------------------------------------------
+*.class
+*.jar
+*.war
+*.ear
+*.log
+hs_err_pid*
+replay_pid*
+
+# -- IDE ----------------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+.factorypath
+out/
+bin/
+
+# -- Environment / Secrets ----------------------------------------
+.env
+.env.local
+.env.*.local
+
+# -- Docker volumes (if bind-mounted) -----------------------------
+data/
+
+# -- OS -----------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# -- Test output --------------------------------------------------
+**/test-results/
+**/test-output/
+
+# -- Coverage reports ---------------------------------------------
+**/jacoco/
+**/coverage/

@@ -1,0 +1,139 @@
+# ============================================================
+# Planning Poker - Audit Service
+# ============================================================
+server:
+  port: 8085
+  shutdown: graceful
+
+spring:
+  application:
+    name: audit-service
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+  # --- Datasource ---
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/audit_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    hikari:
+      maximum-pool-size: ${HIKARI_MAX_POOL_SIZE:10}
+      minimum-idle: ${HIKARI_MIN_IDLE:5}
+      idle-timeout: 300000
+      connection-timeout: 20000
+      max-lifetime: 1200000
+
+  # --- JPA ---
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        default_schema: audit
+        format_sql: true
+
+  # --- Flyway ---
+  flyway:
+    enabled: false
+
+  # --- Security: OAuth2 Resource Server ---
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/planning-poker}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://localhost:8180/realms/planning-poker/protocol/openid-connect/certs}
+
+  # --- Kafka Consumer (subscribes to ALL topics) ---
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: audit-service
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.fasterxml.jackson.databind.JsonNode
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+      concurrency: 3
+
+# --- Audit Configuration ---
+app:
+  audit:
+    retention-days: 90
+
+# --- Actuator ---
+management:
+  server:
+    port: 18085
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: when-authorized
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 50ms,100ms,200ms,500ms,1s,5s
+
+# --- OpenTelemetry Tracing ---
+opentelemetry:
+  tracing:
+    export:
+      otlp:
+        endpoint: ${OTEL_EXPORTER_OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+    sampling:
+      probability: ${OTEL_TRACES_SAMPLER_ARG:1.0}
+
+otel:
+  resource:
+    attributes:
+      service.name: ${spring.application.name}
+      service.version: ${APP_VERSION:0.0.1}
+      deployment.environment: ${SPRING_PROFILES_ACTIVE:local}
+
+# --- SpringDoc / Swagger ---
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+# --- Logging ---
+logging:
+  level:
+    root: INFO
+    com.planningpoker.audit: DEBUG
+    org.springframework: INFO
+    org.hibernate.SQL: DEBUG
+    org.apache.kafka: INFO
+  structured:
+    format:
+      console: logstash

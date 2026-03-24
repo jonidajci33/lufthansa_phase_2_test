@@ -1,0 +1,12 @@
+/workspace/identity-service/src/test/java/com/planningpoker/identity/ArchitectureTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/application/service/UserServiceTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/domain/UserRoleTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/domain/UserTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/infrastructure/persistence/UserJpaEntityMappingTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/infrastructure/persistence/UserPersistenceAdapterIntegrationTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/infrastructure/persistence/UserPersistenceMapperTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/web/AuthControllerTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/web/InternalUserControllerTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/web/JwtTestHelper.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/web/UserControllerTest.java
+/workspace/identity-service/src/test/java/com/planningpoker/identity/web/mapper/UserRestMapperTest.java

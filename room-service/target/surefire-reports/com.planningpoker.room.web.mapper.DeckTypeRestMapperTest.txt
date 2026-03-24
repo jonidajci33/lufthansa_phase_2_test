@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.planningpoker.room.web.mapper.DeckTypeRestMapperTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in com.planningpoker.room.web.mapper.DeckTypeRestMapperTest

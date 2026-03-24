@@ -1,0 +1,200 @@
+# docker-compose.infra.yml — Infrastructure only (no app services)
+# Use for local development when running services from IDE.
+# Start: docker compose -f docker-compose.infra.yml up -d
+# Stop:  docker compose -f docker-compose.infra.yml down
+
+networks:
+  planningpoker-net:
+    driver: bridge
+
+volumes:
+  pg-data:
+  kc-data:
+  kafka-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+services:
+  # ================================================================
+  # DATA LAYER
+  # ================================================================
+
+  # -- PostgreSQL 16 (single instance, 5 logical databases) ---------
+  postgres:
+    image: postgres:16-alpine
+    container_name: pp-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-pp_identity}
+      POSTGRES_USER: ${POSTGRES_USER:-ppuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pppass}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./infra/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh:ro
+    networks:
+      - planningpoker-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ppuser}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # -- Redis 7 ------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: pp-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redispass}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - planningpoker-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redispass}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ================================================================
+  # AUTH LAYER
+  # ================================================================
+
+  # -- Keycloak 26.1 with realm auto-import -------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.1
+    container_name: pp-keycloak
+    command: >
+      start-dev
+      --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${KC_DB_NAME:-pp_keycloak}
+      KC_DB_USERNAME: ${POSTGRES_USER:-ppuser}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-pppass}
+      KEYCLOAK_ADMIN: ${KC_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "${KC_PORT:-8180}:8080"
+    volumes:
+      - kc-data:/opt/keycloak/data
+      - ./infra/keycloak/realm-export.json:/opt/keycloak/data/import/planningpoker-realm.json:ro
+    networks:
+      - planningpoker-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && echo -e 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\n\r\n' >&3 && cat <&3 | grep -q '200'"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 40s
+
+  # ================================================================
+  # MESSAGING LAYER
+  # ================================================================
+
+  # -- Kafka (KRaft mode, single node, NO Zookeeper) ----------------
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: pp-kafka
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_LOG_DIRS: /var/kafka-logs
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    ports:
+      - "${KAFKA_PORT:-29092}:29092"
+    volumes:
+      - kafka-data:/var/kafka-logs
+    networks:
+      - planningpoker-net
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
+
+  # ================================================================
+  # OBSERVABILITY LAYER
+  # ================================================================
+
+  # -- Jaeger (Distributed Tracing, all-in-one) ---------------------
+  jaeger:
+    image: jaegertracing/jaeger:2.0.0
+    container_name: pp-jaeger
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "${JAEGER_UI_PORT:-16686}:16686"
+      - "${OTEL_GRPC_PORT:-4317}:4317"
+      - "${OTEL_HTTP_PORT:-4318}:4318"
+    networks:
+      - planningpoker-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:16686/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # -- Prometheus (Metrics) -----------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: pp-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - planningpoker-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # -- Grafana (Dashboards) -----------------------------------------
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: pp-grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    networks:
+      - planningpoker-net
+    depends_on:
+      - prometheus
+      - jaeger
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

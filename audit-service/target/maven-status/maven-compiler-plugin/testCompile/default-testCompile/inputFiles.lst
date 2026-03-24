@@ -1,0 +1,8 @@
+/workspace/audit-service/src/test/java/com/planningpoker/audit/ArchitectureTest.java
+/workspace/audit-service/src/test/java/com/planningpoker/audit/application/service/AuditServiceTest.java
+/workspace/audit-service/src/test/java/com/planningpoker/audit/domain/AuditEntryTest.java
+/workspace/audit-service/src/test/java/com/planningpoker/audit/infrastructure/messaging/AuditKafkaConsumerTest.java
+/workspace/audit-service/src/test/java/com/planningpoker/audit/infrastructure/persistence/AuditEntryPersistenceMapperTest.java
+/workspace/audit-service/src/test/java/com/planningpoker/audit/web/AuditControllerTest.java
+/workspace/audit-service/src/test/java/com/planningpoker/audit/web/JwtTestHelper.java
+/workspace/audit-service/src/test/java/com/planningpoker/audit/web/mapper/AuditEntryRestMapperTest.java

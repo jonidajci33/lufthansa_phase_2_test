@@ -1,0 +1,12 @@
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/ArchitectureTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/application/service/StoryServiceTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/application/service/VotingServiceTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/domain/StoryTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/domain/VoteTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/infrastructure/persistence/StoryPersistenceMapperTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/infrastructure/persistence/VotePersistenceMapperTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/web/JwtTestHelper.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/web/StoryControllerTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/web/VotingControllerTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/web/mapper/StoryRestMapperTest.java
+/workspace/estimation-service/src/test/java/com/planningpoker/estimation/web/mapper/VoteRestMapperTest.java

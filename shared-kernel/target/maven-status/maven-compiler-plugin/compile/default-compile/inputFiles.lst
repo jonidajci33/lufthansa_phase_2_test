@@ -1,0 +1,12 @@
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/error/ApiError.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/error/BusinessException.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/error/GlobalExceptionHandler.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/error/PageResponse.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/error/ResourceNotFoundException.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/event/DomainEvent.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/event/EventTypes.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/event/Topics.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/observability/CorrelationIdFilter.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/observability/CorrelationIdUtil.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/security/AuthenticatedUser.java
+/workspace/shared-kernel/src/main/java/com/planningpoker/shared/security/JwtClaimExtractor.java

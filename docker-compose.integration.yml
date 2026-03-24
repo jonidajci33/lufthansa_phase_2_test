@@ -1,0 +1,26 @@
+services:
+  identity-service:
+    image: ${IMAGE_PREFIX}/identity-service:${IMAGE_TAG}
+    build: !reset null
+  room-service:
+    image: ${IMAGE_PREFIX}/room-service:${IMAGE_TAG}
+    build: !reset null
+  estimation-service:
+    image: ${IMAGE_PREFIX}/estimation-service:${IMAGE_TAG}
+    build: !reset null
+  notification-service:
+    image: ${IMAGE_PREFIX}/notification-service:${IMAGE_TAG}
+    build: !reset null
+  audit-service:
+    image: ${IMAGE_PREFIX}/audit-service:${IMAGE_TAG}
+    build: !reset null
+  frontend:
+    profiles: ["disabled"]
+  keycloak-init:
+    profiles: ["disabled"]
+  prometheus:
+    profiles: ["disabled"]
+  grafana:
+    profiles: ["disabled"]
+  jaeger:
+    profiles: ["disabled"]

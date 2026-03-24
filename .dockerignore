@@ -1,0 +1,36 @@
+# Build output
+**/build/
+**/target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# Version control
+.git/
+.gitignore
+
+# Local caches
+.m2/
+.gradle/
+**/bin/
+
+# CI / environment
+.env
+.env.*
+docker-compose*.yml
+*.md
+LICENSE
+
+# Infrastructure configs (not needed in app image)
+infra/
+docs/
+postman/
+
+# Test fixtures (source not needed in production images, but pom.xml needed for Maven module resolution)
+test-fixtures/src/
+test-fixtures/target/

@@ -1,0 +1,8 @@
+/workspace/notification-service/src/test/java/com/planningpoker/notification/ArchitectureTest.java
+/workspace/notification-service/src/test/java/com/planningpoker/notification/application/service/NotificationEventHandlerTest.java
+/workspace/notification-service/src/test/java/com/planningpoker/notification/application/service/NotificationServiceTest.java
+/workspace/notification-service/src/test/java/com/planningpoker/notification/domain/NotificationTest.java
+/workspace/notification-service/src/test/java/com/planningpoker/notification/infrastructure/persistence/NotificationPersistenceMapperTest.java
+/workspace/notification-service/src/test/java/com/planningpoker/notification/web/JwtTestHelper.java
+/workspace/notification-service/src/test/java/com/planningpoker/notification/web/NotificationControllerTest.java
+/workspace/notification-service/src/test/java/com/planningpoker/notification/web/mapper/NotificationRestMapperTest.java

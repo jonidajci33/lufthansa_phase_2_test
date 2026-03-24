@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.planningpoker.notification.web.NotificationControllerTest
+-------------------------------------------------------------------------------
+Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 13.15 s -- in com.planningpoker.notification.web.NotificationControllerTest

@@ -1,0 +1,588 @@
+{
+  "info": {
+    "name": "Planning Poker Platform",
+    "_postman_id": "pp-collection-001",
+    "description": "API collection for the Planning Poker microservices platform.\n\nSetup:\n1. Import the 'Planning Poker Local' environment\n2. Obtain a token from Keycloak (use the 'Auth / Get Token (ROPC)' request)\n3. The token is auto-set in the collection variable {{access_token}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "keycloak_url",
+      "value": "http://localhost:8180",
+      "type": "string"
+    },
+    {
+      "key": "realm",
+      "value": "planning-poker",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "description": "Authentication and token management via Keycloak",
+      "item": [
+        {
+          "name": "Get Token (ROPC - dev only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', json.access_token);",
+                  "    console.log('Token set successfully');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password" },
+                { "key": "client_id", "value": "planning-poker-spa" },
+                { "key": "username", "value": "testuser" },
+                { "key": "password", "value": "testpass" },
+                { "key": "scope", "value": "openid profile email" }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": ["{{keycloak_url}}"],
+              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "refresh_token" },
+                { "key": "client_id", "value": "planning-poker-spa" },
+                { "key": "refresh_token", "value": "{{refresh_token}}" }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/token",
+              "host": ["{{keycloak_url}}"],
+              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "token"]
+            }
+          }
+        },
+        {
+          "name": "Get User Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{keycloak_url}}/realms/{{realm}}/protocol/openid-connect/userinfo",
+              "host": ["{{keycloak_url}}"],
+              "path": ["realms", "{{realm}}", "protocol", "openid-connect", "userinfo"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Identity Service",
+      "description": "User profiles and account management",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"displayName\": \"Jane Developer\",\n  \"avatarUrl\": \"https://example.com/avatar.png\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", "me"]
+            }
+          }
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/users/:userId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "users", ":userId"],
+              "variable": [
+                { "key": "userId", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Room Service",
+      "description": "Planning poker room lifecycle and membership",
+      "item": [
+        {
+          "name": "Create Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 42 Planning\",\n  \"description\": \"Estimate stories for sprint 42\",\n  \"votingSystem\": \"FIBONACCI\",\n  \"autoReveal\": true,\n  \"timerSeconds\": 120\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "List My Rooms",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/rooms?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rooms"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Room by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/rooms/:roomId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rooms", ":roomId"],
+              "variable": [
+                { "key": "roomId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Join Room",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/rooms/:roomId/join",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rooms", ":roomId", "join"],
+              "variable": [
+                { "key": "roomId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Leave Room",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/rooms/:roomId/leave",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rooms", ":roomId", "leave"],
+              "variable": [
+                { "key": "roomId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Room Members",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/rooms/:roomId/members",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rooms", ":roomId", "members"],
+              "variable": [
+                { "key": "roomId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Room",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/v1/rooms/:roomId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rooms", ":roomId"],
+              "variable": [
+                { "key": "roomId", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Estimation Service",
+      "description": "Voting sessions, votes, and estimation results",
+      "item": [
+        {
+          "name": "Start Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"roomId\": \"\",\n  \"topic\": \"US-1234: Implement user dashboard\",\n  \"description\": \"Create the main dashboard view with summary widgets\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/sessions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sessions"]
+            }
+          }
+        },
+        {
+          "name": "Get Session",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/sessions/:sessionId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sessions", ":sessionId"],
+              "variable": [
+                { "key": "sessionId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Vote",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"value\": \"5\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/sessions/:sessionId/votes",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sessions", ":sessionId", "votes"],
+              "variable": [
+                { "key": "sessionId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reveal Votes",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/sessions/:sessionId/reveal",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sessions", ":sessionId", "reveal"],
+              "variable": [
+                { "key": "sessionId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Session Results",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/sessions/:sessionId/results",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sessions", ":sessionId", "results"],
+              "variable": [
+                { "key": "sessionId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Reset Session (Re-vote)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/sessions/:sessionId/reset",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sessions", ":sessionId", "reset"],
+              "variable": [
+                { "key": "sessionId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "End Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"finalEstimate\": \"5\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/sessions/:sessionId/end",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "sessions", ":sessionId", "end"],
+              "variable": [
+                { "key": "sessionId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Sessions by Room",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/rooms/:roomId/sessions?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "rooms", ":roomId", "sessions"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ],
+              "variable": [
+                { "key": "roomId", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notification Service",
+      "description": "Notification preferences and WebSocket connection info",
+      "item": [
+        {
+          "name": "Get My Notification Preferences",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/preferences",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "preferences"]
+            }
+          }
+        },
+        {
+          "name": "Update Notification Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"emailOnSessionStart\": true,\n  \"emailOnSessionEnd\": false,\n  \"pushEnabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/preferences",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", "preferences"]
+            }
+          }
+        },
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications?page=0&size=20&unreadOnly=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "unreadOnly", "value": "true" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{base_url}}/api/v1/notifications/:notificationId/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "notifications", ":notificationId", "read"],
+              "variable": [
+                { "key": "notificationId", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit Service",
+      "description": "Audit trail and activity logs (ADMIN only)",
+      "item": [
+        {
+          "name": "Search Audit Events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit/events?page=0&size=20&from=2026-01-01T00:00:00Z&to=2026-12-31T23:59:59Z",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit", "events"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "from", "value": "2026-01-01T00:00:00Z" },
+                { "key": "to", "value": "2026-12-31T23:59:59Z" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Audit Event by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit/events/:eventId",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit", "events", ":eventId"],
+              "variable": [
+                { "key": "eventId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Audit Events by Room",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit/rooms/:roomId/events?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit", "rooms", ":roomId", "events"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ],
+              "variable": [
+                { "key": "roomId", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Audit Events by User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/audit/users/:userId/events?page=0&size=20",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "audit", "users", ":userId", "events"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ],
+              "variable": [
+                { "key": "userId", "value": "" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "description": "Actuator health and info endpoints for all services",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "health"]
+            }
+          }
+        },
+        {
+          "name": "Gateway Info",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/info",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "info"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

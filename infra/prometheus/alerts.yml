@@ -1,0 +1,132 @@
+# Alerting rules for Planning Poker Platform
+# Based on: OBSERVABILITY_STANDARD.md section 2.7
+
+groups:
+  # ── Error Rate Alerts ────────────────────────────────────
+  - name: error-rate
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (application)
+            /
+            sum(rate(http_server_requests_seconds_count[5m])) by (application)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate (> 5%) on {{ $labels.application }}"
+          description: "{{ $labels.application }} has a 5xx error rate of {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      - alert: ElevatedClientErrors
+        expr: |
+          (
+            sum(rate(http_server_requests_seconds_count{status=~"4.."}[5m])) by (application)
+            /
+            sum(rate(http_server_requests_seconds_count[5m])) by (application)
+          ) > 0.25
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Elevated 4xx error rate (> 25%) on {{ $labels.application }}"
+          description: "{{ $labels.application }} has a client error rate of {{ $value | humanizePercentage }}."
+
+  # ── Latency Alerts ──────────────────────────────────────
+  - name: latency
+    rules:
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket[5m])) by (le, application)
+          ) > 2.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P95 latency > 2s on {{ $labels.application }}"
+          description: "{{ $labels.application }} P95 response time is {{ $value }}s."
+
+      - alert: HighLatencyP99
+        expr: |
+          histogram_quantile(0.99,
+            sum(rate(http_server_requests_seconds_bucket[5m])) by (le, application)
+          ) > 5.0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "P99 latency > 5s on {{ $labels.application }}"
+          description: "{{ $labels.application }} P99 response time is {{ $value }}s."
+
+  # ── Service Health Alerts ────────────────────────────────
+  - name: service-health
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.application }} is down"
+          description: "Prometheus has not been able to scrape {{ $labels.application }} for more than 1 minute."
+
+      - alert: TooFewInstances
+        expr: |
+          count(up{service_group="planning-poker"} == 1) < 6
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Not all Planning Poker services are running"
+          description: "Only {{ $value }} of 6 expected services are up."
+
+  # ── JVM Alerts ──────────────────────────────────────────
+  - name: jvm
+    rules:
+      - alert: HighHeapUsage
+        expr: |
+          jvm_memory_used_bytes{area="heap"}
+          /
+          jvm_memory_max_bytes{area="heap"} > 0.85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Heap usage > 85% on {{ $labels.application }}"
+          description: "{{ $labels.application }} heap is at {{ $value | humanizePercentage }}."
+
+      - alert: HighGCPause
+        expr: |
+          rate(jvm_gc_pause_seconds_sum[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High GC pause time on {{ $labels.application }}"
+          description: "{{ $labels.application }} is spending {{ $value }}s/s in GC pauses."
+
+  # ── Connection Pool Alerts ───────────────────────────────
+  - name: connection-pool
+    rules:
+      - alert: ConnectionPoolExhaustion
+        expr: hikaricp_connections_pending > 5
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "DB connection pool has > 5 pending threads on {{ $labels.application }}"
+          description: "{{ $labels.application }} has {{ $value }} threads waiting for a database connection."
+
+      - alert: ConnectionPoolSaturation
+        expr: |
+          hikaricp_connections_active
+          /
+          hikaricp_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Connection pool > 90% saturated on {{ $labels.application }}"
+          description: "{{ $labels.application }} active connections: {{ $value | humanizePercentage }} of max."

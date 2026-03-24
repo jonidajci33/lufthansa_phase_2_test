@@ -1,0 +1,3 @@
+com/planningpoker/room/infrastructure/messaging/RoomEventKafkaPublisher$UserLeftRoomPayload.class
+com/planningpoker/room/application/port/in/RemoveParticipantUseCase.class
+com/planningpoker/room/web/dto/ShareLinkResponse.class

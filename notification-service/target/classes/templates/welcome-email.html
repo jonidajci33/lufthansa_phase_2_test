@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to Planning Poker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 40px; }
+        h1 { color: #333333; }
+        p { color: #666666; line-height: 1.6; }
+        .btn { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: #ffffff; text-decoration: none; border-radius: 4px; margin-top: 20px; }
+        .footer { margin-top: 40px; font-size: 12px; color: #999999; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Welcome to Planning Poker!</h1>
+    <p>Hi <span th:text="${username}">User</span>,</p>
+    <p>Your account has been created successfully. You can now create rooms, invite team members, and start estimating stories together.</p>
+    <a th:href="${frontendUrl}" class="btn">Get Started</a>
+    <div class="footer">
+        <p>This email was sent by Planning Poker. If you did not create this account, please ignore this email.</p>
+    </div>
+</div>
+</body>
+</html>

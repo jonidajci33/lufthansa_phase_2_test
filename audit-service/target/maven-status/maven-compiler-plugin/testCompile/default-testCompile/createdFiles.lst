@@ -1,0 +1,8 @@
+com/planningpoker/audit/web/AuditControllerTest.class
+com/planningpoker/audit/ArchitectureTest.class
+com/planningpoker/audit/infrastructure/messaging/AuditKafkaConsumerTest.class
+com/planningpoker/audit/web/JwtTestHelper.class
+com/planningpoker/audit/application/service/AuditServiceTest.class
+com/planningpoker/audit/infrastructure/persistence/AuditEntryPersistenceMapperTest.class
+com/planningpoker/audit/domain/AuditEntryTest.class
+com/planningpoker/audit/web/mapper/AuditEntryRestMapperTest.class

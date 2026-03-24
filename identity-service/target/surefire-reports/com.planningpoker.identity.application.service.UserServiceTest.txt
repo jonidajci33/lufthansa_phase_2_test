@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.planningpoker.identity.application.service.UserServiceTest
+-------------------------------------------------------------------------------
+Tests run: 21, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.833 s -- in com.planningpoker.identity.application.service.UserServiceTest

@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.planningpoker.estimation.application.service.StoryServiceTest
+-------------------------------------------------------------------------------
+Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.103 s -- in com.planningpoker.estimation.application.service.StoryServiceTest

@@ -1,0 +1,26 @@
+# Grafana auto-provisioned datasources for Planning Poker Platform
+# Based on: OBSERVABILITY_STANDARD.md section 5.3
+
+apiVersion: 1
+
+datasources:
+  # ── Prometheus (Metrics) ─────────────────────────────────
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://pp-prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: 10s
+      httpMethod: POST
+
+  # ── Jaeger (Traces) ─────────────────────────────────────
+  - name: Jaeger
+    type: jaeger
+    access: proxy
+    url: http://pp-jaeger:16686
+    editable: false
+    jsonData:
+      tracesToMetrics:
+        datasourceUid: prometheus
